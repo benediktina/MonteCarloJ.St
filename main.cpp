@@ -10,12 +10,6 @@
 
 using namespace std;
 
-// funkcija six hump
-double sixhump(double *x)
-{
-    double f = (4- 2.1 * x[0] * x[0] + (pow(x[0],4))/3) * x[0] * x[0] + x[0] * x[1] + ((-4+4*x[1]*x[1])*(pow(x[1],2)));
-    return f;
-}
 // struktura
 struct taskas
 {
@@ -23,10 +17,65 @@ struct taskas
     double y; // antras taskas
     double f; // funkcija nuo x ir y
 };
-// funkcija rand
-double generuoti(double x0, double x1)
+
+
+// heapsort funkcijos
+void swap(taskas *x, taskas *y)
 {
-return x0 + (x1 - x0) * rand() / ((double) RAND_MAX);
+    taskas rez;
+    rez = *x;
+    *x = *y;
+    *y = rez;
+}
+
+void heapsort(taskas *a,int n)
+{
+    int i,s,f;
+    for(i=1;i< n;++i)
+    {
+        s=i;
+        f=(s-1)/2;
+        while( a[f].f< a[s].f)
+        {
+            swap(&a[f],&a[s]);
+            s=f;
+            if(s==0)
+            break;
+            f=(s-1)/2;
+        }
+    }
+    for(i=n-1;i>=1;--i)
+    {
+        swap(&a[0],&a[i]);
+        f=0;
+        s=1;
+        if(i==1)
+        break;
+        if(i>2)if(a[2].f>a[1].f)s=2;
+        while( a[f].f< a[s].f )
+        {
+            swap(&a[f],&a[s]);
+            f=s;
+            s=2*f+1;
+            if(i>s+1 )if(a[s+1].f>a[s].f)s=s+1;
+            if (s>=i)
+            break;
+        }
+    }
+}
+
+
+// funkcija six hump
+double sixhump(double *x)
+{
+    double f = (4- 2.1 * x[0] * x[0] + (pow(x[0],4))/3) * x[0] * x[0] + x[0] * x[1] + ((-4+4*x[1]*x[1])*(pow(x[1],2)));
+    return f;
+}
+
+// funkcija rand
+double generuoti(double a, double b)
+{
+return a + (b - a) * rand() / ((double) RAND_MAX);
 }
 
 bool didejanciai(const taskas &a, const taskas &b) // funkcijas vektoriaus rusevimui didejanciai
@@ -48,7 +97,7 @@ int main()
     double mas[3]; // laikinoms reiksmes laikyti
     double fspr; // funkcijos reiksme taskuose x ir y
     double max, min, suma = 0, x_min, y_min, x_max, y_max;
-    taskas rez;
+    taskas rez; //strukturos kintamasis
 
     vector <taskas> reiksmes(0);
 
@@ -121,9 +170,11 @@ int main()
         }
     */
 
+    // rusiuoja per vector su sort
+
     sort(reiksmes.begin(), reiksmes.end(), didejanciai); // didejanciai
 
-    cout << "Trys maziausios reiksmes: " << endl;
+    cout << "Trys maziausios reiksmes (su vector sort): " << endl;
 
     for (int i=0; i<3; i++) // iki reiksmes.size()
         {
@@ -133,7 +184,19 @@ int main()
             cout << reiksmes[i].f << endl;
         }
 
-    sort(reiksmes.begin(), reiksmes.end(), mazejanciai); // mazejanciai
+    //sort(reiksmes.begin(), reiksmes.end(), mazejanciai); // mazejanciai
+
+    // rusiuoja su heapsort
+     heapsort(&reiksmes[0],(j-1));
+
+     cout << "Trys maziausios reiksmes (su heapsort): " << endl;
+
+     for (int i=0; i<3; i++)
+     {
+         cout << "=== " << i+1 << " ===" << endl;
+         cout << "x = " << reiksmes[i].x << " y = " << reiksmes[i].y << " f = " << reiksmes[i].f << endl;
+     }
+
 
 
     return 0;
