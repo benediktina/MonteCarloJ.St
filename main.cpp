@@ -6,7 +6,8 @@
 #include <vector>
 #include <algorithm>
 
-#define EPS 0.00001
+#define EPS 0.1
+#define N 2
 
 using namespace std;
 
@@ -18,6 +19,45 @@ struct taskas
     double f; // funkcija nuo x ir y
 };
 
+
+// Vektoriaus begalines (max) normos funkcijos deklaracija
+double Vector_Max_Norm(double v[], int n);
+
+// Greiciausio nusileidimo (angl. Steepest Descent) metodo deklaracija
+int  Steepest_Descent(double (*f)(double *), void (*df)(double *, double *),
+     int (*stopping_rule)(double*, double, double*, double, double*, int, int),
+                          double a[], double *fa, double *dfa, double cutoff,
+						double cutoff_scale_factor, double tolerance, int n);
+
+// Generuoja atsitiktini realu skaiciu tarp dLow and dHigh
+double GetRandomNumber(double dLow, double dHigh){
+    return static_cast<double>(rand())/RAND_MAX*(dHigh-dLow) + dLow;
+}
+
+// Apskaiciuoja Six-hump Camel Back funkcijos reiksme taske x
+double SixHumpCamelBack(double *x){
+    return (4-2.1*x[0]*x[0]+x[0]*x[0]*x[0]*x[0]/3)*x[0]*x[0] + x[0]*x[1] +
+    (-4+4*x[1]*x[1])*x[1]*x[1];
+}
+// Apskaiciuoja Six-hump Camel Back gradiento reiksme taske x
+void SixHumpCamelBackGradient(double *x, double *fGrad){
+    fGrad[0] = 8*x[0]-8.4*x[0]*x[0]*x[0]+2*x[0]*x[0]*x[0]*x[0]*x[0]+x[1];
+    fGrad[1] = x[0]-8*x[1]+16*x[1]*x[1]*x[1];
+}
+
+// Algoritmo sustojimo salyga kontroliuojanti funkcija
+int StoppingRule(double* a, double fa, double* x, double fx, double* dfa, int
+iteration, int n){
+	double fEps = abs(fx - fa); // Funkcijos reiksmiu skirtumas
+	double xa[n];
+	for(int i = 0; i < n; ++i) xa[i] = x[i]-a[i];
+	double xEps = Vector_Max_Norm(xa, 2); // Argumento skirtumo norma
+	double dfaEps = Vector_Max_Norm(dfa, 2); // Gradiento norma
+	if(iteration > 3)
+		return -6;
+	else
+		return 0;
+}
 
 // heapsort funkcijos
 void swap(taskas *x, taskas *y)
@@ -88,6 +128,29 @@ bool mazejanciai(const taskas &a, const taskas &b) // funkcijas vektoriaus rusev
     return a.f > b.f;
 }
 
+// optimizavimas
+void optimizavimas(double x, double y, double f)
+{
+    double x_old = x, y_old=y, x_new=0, y_new=0;
+    double eps = 0.01;
+    double fr;
+    double precision = 0.00001;
+    double mas[3];
+
+    while (sqrt((x_new-x_old)*(x_new-x_old)+(y_new-y_old)*(y_new-y_old)) > precision)
+    {
+
+        mas[0] = x_old;
+        mas[1] = y_old;
+        fr = sixhump(&mas[0]);
+        x_new = x_old - eps * fr;
+        y_new = x_old - eps * fr;
+
+        x_old = x_new;
+        y_old = y_new;
+    }
+    cout << "\nx = " << x_new << " y = " << y_new;
+}
 
 int main()
 {
@@ -98,6 +161,10 @@ int main()
     double fspr; // funkcijos reiksme taskuose x ir y
     double max, min, suma = 0, x_min, y_min, x_max, y_max;
     taskas rez; //strukturos kintamasis
+
+    // masyvas su trim maziausiom reiksmem
+    double a[6];
+
 
     vector <taskas> reiksmes(0);
 
@@ -149,15 +216,15 @@ int main()
     }
 
     cout<< "====================================="<<endl;
-    cout << "F-jos minimumas yra "<< min <<endl;
+    cout << "\nF-jos minimumas yra "<< min <<endl;
     cout << "taske ("<< x_min <<", "<<y_min<< ")"<<endl;
     cout<< "-------------------------------------"<<endl;
-    cout << "F-jos maximumas yra "<< max <<endl;
+    cout << "\nF-jos maximumas yra "<< max <<endl;
     cout << "taske ("<< x_max <<", "<<y_max<< ")"<<endl;
     cout<< "-------------------------------------"<<endl;
-    cout << "F-jos vidurkis yra "<< (suma/(j-1)) <<endl;
+    cout << "\nF-jos vidurkis yra "<< (suma/(j-1)) <<endl;
     cout<< "-------------------------------------"<<endl;
-    cout << "Ciklas prasuktas "<< (j-1)<<" kartu" <<endl;
+    cout << "\nCiklas prasuktas "<< (j-1)<<" kartu" <<endl;
     cout<< "====================================="<<endl;
 
     /*for (int i=0; i<3; i++) // iki reiksmes.size()
@@ -174,11 +241,11 @@ int main()
 
     sort(reiksmes.begin(), reiksmes.end(), didejanciai); // didejanciai
 
-    cout << "Trys maziausios reiksmes (su vector sort): " << endl;
+    cout << "\nTrys maziausios reiksmes (su vector sort): " << endl;
 
     for (int i=0; i<3; i++) // iki reiksmes.size()
         {
-            cout << "=== " << i+1 << " ===" << endl;
+            cout << "\n=== " << i+1 << " ===" << endl;
             //cout << reiksmes[i].x << endl;
             //cout << reiksmes[i].y << endl;
             cout << reiksmes[i].f << endl;
@@ -189,14 +256,79 @@ int main()
     // rusiuoja su heapsort
      heapsort(&reiksmes[0],(j-1));
 
-     cout << "Trys maziausios reiksmes (su heapsort): " << endl;
+     cout << "\nTrys maziausios reiksmes (su heapsort): " << endl;
 
      for (int i=0; i<3; i++)
      {
-         cout << "=== " << i+1 << " ===" << endl;
+         cout << "\n=== " << i+1 << " ===" << endl;
          cout << "x = " << reiksmes[i].x << " y = " << reiksmes[i].y << " f = " << reiksmes[i].f << endl;
      }
 
+     // reiksmiu priskyrimas
+     a[0] = reiksmes[0].x;
+     a[1] = reiksmes[0].y;
+     a[2] = reiksmes[1].x;
+     a[3] = reiksmes[1].y;
+     a[4] = reiksmes[2].x;
+     a[5] = reiksmes[2].y;
+
+
+     //optimizavimas(reiksmes[0].x, reiksmes[0].y, reiksmes[0].f);
+
+     // Steepest Descent prijungiu cia
+    cout << "\n===========================================================\n";
+    // atspausdiname maziausias reiksmes:
+     for(int i=0; i<6; i++)
+        cout << a[i] << " -- ";
+
+    double region[] = {-1.9, 1.9, -1.1, 1.1};
+
+    for (int i=0; i<3; i=i+2)
+    {
+
+    cout << "\n\n===PRIES===" << endl;
+    cout << "x = " << a[i] << " y = " << a[i+1] << " F = " << reiksmes[i].f << endl;
+
+
+
+
+    double fa = SixHumpCamelBack(&a[i]); // Funkcijos reiksme pradiniame taske a
+    double dfa[N];
+    SixHumpCamelBackGradient(a, dfa); // Funkcijos gradiento reiksme taske a
+    double cutoff = 1.0, cutoff_scale_factor = 1.0; // Pap. parametrai
+    double tolerance = 0.01;
+    int err = Steepest_Descent( SixHumpCamelBack, SixHumpCamelBackGradient, StoppingRule,
+    a, &fa, dfa, cutoff, cutoff_scale_factor, tolerance, N);
+
+    switch (err)
+    {
+        case 0:
+        cout << "Success" << endl;
+        break;
+        case -1:
+        cout << "In the line search three points are collinear." << endl;
+        break;
+        case -2:
+        cout << "In the line search the extremum of the parabola through the three points is a maximum." << endl;
+        break;
+        case -3:
+        cout << "Int the line search the initial points failed to satisfy the condition that x1 < x2 < x3 and fx1 > fx2 < fx3." << endl;
+        break;
+        case -4:
+        cout << "Not enough memory." << endl;
+        break;
+        case -5:
+        cout << "The gradient evaluated at the initial point vanishes." << endl;
+        case -6:
+        cout << "\nExceed maximal number of iterations." << endl;
+        break;
+    }
+    cout << "\nGreiciausio nusileidimo (angl. Steepest Descent) metodu" << endl;
+    cout << "surastas sprendinys yra:" << endl;
+    cout << "\nxMin = (" << a[0] << ", " << a[1] << ")" << endl;
+    cout << "\nf(xMin) = " << fa << endl;
+
+    }
 
 
     return 0;
